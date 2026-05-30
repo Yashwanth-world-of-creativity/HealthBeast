@@ -267,7 +267,7 @@ export default function AIAssistantPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] w-full flex select-none overflow-hidden flex-1 min-h-0 relative">
+    <div className="h-full w-full flex select-none overflow-hidden flex-1 min-h-0 relative">
       {/* 1. COLLAPSIBLE CHAT HISTORY SIDEBAR */}
       <AnimatePresence initial={false}>
         {sidebarOpen && (

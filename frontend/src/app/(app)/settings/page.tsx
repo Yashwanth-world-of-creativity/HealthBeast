@@ -139,7 +139,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="h-[calc(100vh-4rem)] flex flex-col justify-center items-center gap-3">
+      <div className="h-full min-h-[400px] flex flex-col justify-center items-center gap-3">
         <Loader2 className="size-8 text-primary animate-spin" />
         <span className="text-xs text-muted-foreground font-semibold">
           Fetching biometric account configs...

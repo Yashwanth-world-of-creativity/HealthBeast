@@ -24,8 +24,8 @@ export default function DashboardLayout({
         <Navbar />
 
         {/* Dynamic page content scroll area */}
-        <main className="flex-1 overflow-y-auto z-10 relative scrollbar-thin scrollbar-thumb-muted">
-          <div className="w-full max-w-7xl mx-auto h-full">
+        <main className="flex-1 flex flex-col min-h-0 min-w-0 overflow-y-auto z-10 relative scrollbar-thin scrollbar-thumb-muted">
+          <div className="w-full max-w-7xl mx-auto flex-1 flex flex-col min-h-0">
             {children}
           </div>
         </main>
