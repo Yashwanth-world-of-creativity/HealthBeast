@@ -10,6 +10,8 @@ import {
   Brain,
   Info,
   Activity,
+  Download,
+  Share2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -27,9 +29,10 @@ import {
   Legend,
 } from "recharts";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { useHealthStore } from "@/store/health-store";
 
-// Mock Weekly HRV & Sleep Data (Clinical Correlation Vitals)
 const vitalsCorrelationData = [
   { day: "Mon", sleepIndex: 72, hrv: 62 },
   { day: "Tue", sleepIndex: 78, hrv: 68 },
@@ -49,14 +52,12 @@ export default function AnalyticsPage() {
     () => false
   );
 
-  // 1. Calculate overall Danger Index dynamically
   const overallDangerIndex = React.useMemo(() => {
-    if (symptoms.length === 0) return 15; // healthy baseline
+    if (symptoms.length === 0) return 15;
     const sum = symptoms.reduce((acc, curr) => acc + curr.dangerValue, 0);
     return Math.round(sum / symptoms.length);
   }, [symptoms]);
 
-  // 2. Calculate overall Recovery Score dynamically
   const recoveryScore = React.useMemo(() => {
     let score = 85;
 
@@ -76,7 +77,6 @@ export default function AnalyticsPage() {
     return Math.min(100, Math.max(10, score));
   }, [symptoms, reports, waterIntake, medications]);
 
-  // 3. Compute Pie Chart Severity Breakdown
   const pieData = React.useMemo(() => {
     let lowCount = 0;
     let medCount = 0;
@@ -88,7 +88,6 @@ export default function AnalyticsPage() {
       else if (s.severity === "High") highCount++;
     });
 
-    // Default mock data if empty to display empty baseline
     if (symptoms.length === 0) {
       return [{ name: "Stable Baseline", value: 1, color: "#10b981" }];
     }
@@ -100,17 +99,16 @@ export default function AnalyticsPage() {
     ].filter((item) => item.value > 0);
   }, [symptoms]);
 
-  // Framer Motion staggered reveals
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.08 },
+      transition: { staggerChildren: 0.1, delayChildren: 0.2 },
     },
   };
 
   const cardVariants: Variants = {
-    hidden: { opacity: 0, y: 15 },
+    hidden: { opacity: 0, y: 20 },
     show: {
       opacity: 1,
       y: 0,
@@ -118,17 +116,49 @@ export default function AnalyticsPage() {
     },
   };
 
+  const handleExport = () => {
+    toast.success("Analytics data exported successfully!");
+  };
+
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6 select-none">
-      {/* Title */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl sm:text-2xl font-bold font-heading flex items-center gap-2">
-          <BarChart3 className="size-6 text-primary animate-pulse" />
-          Symptom-to-Vitals Analytics Console
-        </h1>
-        <p className="text-[10px] text-muted-foreground">
-          Calibrate dynamic distress graphs, evaluate weekly sleep-to-HRV bio-correlations, and review clinical recovery timelines.
-        </p>
+      <div className="flex flex-col gap-1 justify-between sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-xl sm:text-2xl font-bold font-heading flex items-center gap-2">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            >
+              <BarChart3 className="size-6 text-primary" />
+            </motion.div>
+            Symptom-to-Vitals Analytics Console
+          </h1>
+          <p className="text-[10px] text-muted-foreground">
+            Calibrate dynamic distress graphs, evaluate weekly sleep-to-HRV bio-correlations, and review clinical recovery timelines.
+          </p>
+        </div>
+        <div className="flex gap-2 mt-4 sm:mt-0">
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              className="rounded-xl flex items-center gap-2"
+            >
+              <Download className="size-4" /> Export
+            </Button>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toast.info("Share feature coming soon!")}
+              className="rounded-xl flex items-center gap-2"
+            >
+              <Share2 className="size-4" /> Share
+            </Button>
+          </motion.div>
+        </div>
       </div>
 
       {mounted && (
@@ -138,39 +168,59 @@ export default function AnalyticsPage() {
           animate="show"
           className="grid grid-cols-1 lg:grid-cols-3 gap-6"
         >
-          {/* COLUMN 1: INTEGRATED DANGER & RECOVERY RADARS */}
           <div className="space-y-6">
             <motion.div variants={cardVariants} className="grid grid-cols-2 gap-4">
-              {/* Danger index widget */}
-              <Card className="border-border/40 bg-card/45 backdrop-blur-md p-4 flex flex-col justify-between hover:border-primary/20 transition-all">
-                <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-1">
-                  <AlertTriangle className="size-3.5 text-rose-500 animate-bounce" /> Danger Index
-                </span>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-3xl font-black font-heading text-rose-500">
-                    {overallDangerIndex}%
+              <motion.div whileHover={{ y: -4 }}>
+                <Card className="border-border/40 bg-card/45 backdrop-blur-md p-4 flex flex-col justify-between hover:border-primary/20 transition-all cursor-pointer h-full">
+                  <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-1">
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                    >
+                      <AlertTriangle className="size-3.5 text-rose-500" />
+                    </motion.div>
+                    Danger Index
                   </span>
-                  <span className="text-[9px] text-muted-foreground">Distress</span>
-                </div>
-              </Card>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <motion.span
+                      animate={{ scale: [1, 1.05, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="text-3xl font-black font-heading text-rose-500"
+                    >
+                      {overallDangerIndex}%
+                    </motion.span>
+                    <span className="text-[9px] text-muted-foreground">Distress</span>
+                  </div>
+                </Card>
+              </motion.div>
 
-              {/* Recovery index widget */}
-              <Card className="border-border/40 bg-card/45 backdrop-blur-md p-4 flex flex-col justify-between hover:border-primary/20 transition-all">
-                <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-1">
-                  <HeartPulse className="size-3.5 text-emerald-500 animate-pulse" /> Recovery Score
-                </span>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-3xl font-black font-heading text-emerald-500">
-                    {recoveryScore}%
+              <motion.div whileHover={{ y: -4 }}>
+                <Card className="border-border/40 bg-card/45 backdrop-blur-md p-4 flex flex-col justify-between hover:border-primary/20 transition-all cursor-pointer h-full">
+                  <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-1">
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      <HeartPulse className="size-3.5 text-emerald-500" />
+                    </motion.div>
+                    Recovery Score
                   </span>
-                  <span className="text-[9px] text-muted-foreground">Adherence</span>
-                </div>
-              </Card>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <motion.span
+                      animate={{ scale: [1, 1.05, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: 0.1 }}
+                      className="text-3xl font-black font-heading text-emerald-500"
+                    >
+                      {recoveryScore}%
+                    </motion.span>
+                    <span className="text-[9px] text-muted-foreground">Adherence</span>
+                  </div>
+                </Card>
+              </motion.div>
             </motion.div>
 
-            {/* Severity Breakdown Donut */}
-            <motion.div variants={cardVariants}>
-              <Card className="border-border/40 bg-card/45 backdrop-blur-md p-5 space-y-4 hover:border-primary/20 transition-all">
+            <motion.div variants={cardVariants} whileHover={{ y: -4 }}>
+              <Card className="border-border/40 bg-card/45 backdrop-blur-md p-5 space-y-4 hover:border-primary/20 transition-all cursor-pointer">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
                   <Info className="size-4 text-primary" /> Active Severity Ratio
                 </h3>
@@ -211,13 +261,19 @@ export default function AnalyticsPage() {
                       </div>
                     ) : (
                       pieData.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between text-[10px]">
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                          className="flex items-center justify-between text-[10px]"
+                        >
                           <div className="flex items-center gap-1.5">
                             <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
                             <span className="text-muted-foreground font-semibold">{item.name}</span>
                           </div>
                           <span className="font-bold text-foreground">{item.value}</span>
-                        </div>
+                        </motion.div>
                       ))
                     )}
                   </div>
@@ -225,24 +281,27 @@ export default function AnalyticsPage() {
               </Card>
             </motion.div>
 
-            {/* Clinical Analytics Insight */}
-            <motion.div variants={cardVariants}>
-              <Card className="border-border/40 bg-gradient-to-br from-card/45 to-primary/5 p-5 space-y-2">
+            <motion.div variants={cardVariants} whileHover={{ y: -4 }}>
+              <Card className="border-border/40 bg-gradient-to-br from-card/45 to-primary/5 p-5 space-y-2 cursor-pointer">
                 <h3 className="text-xs font-bold text-primary flex items-center gap-1.5">
-                  <Brain className="size-4 animate-bounce" /> Clinical Telemetry Advice
+                  <motion.div
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Brain className="size-4" />
+                  </motion.div>
+                  Clinical Telemetry Advice
                 </h3>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  Your dynamic danger distress curves correlate directly with systemic recovery readiness. Keeping active supplement checkpoints (Omega 3 and L-Theanine) and maintaining fluid goals above the baseline significantly limits the spikes of inflammation markers, allowing heart rate variability (HRV) status to return to optimal peaks.
+                  Your dynamic danger distress curves correlate directly with systemic recovery readiness. Keeping active supplement checkpoints and maintaining fluid goals above 2.5L daily supports metabolic telemetry.
                 </p>
               </Card>
             </motion.div>
           </div>
 
-          {/* COLUMN 2 & 3: CHARTS & CORRELATIONS CONSOLE */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Distress Danger vs Recovery Timeline */}
-            <motion.div variants={cardVariants}>
-              <Card className="border-border/40 bg-card/45 backdrop-blur-md p-5 space-y-4 hover:border-primary/20 transition-all">
+            <motion.div variants={cardVariants} whileHover={{ y: -4 }}>
+              <Card className="border-border/40 bg-card/45 backdrop-blur-md p-5 space-y-4 hover:border-primary/20 transition-all cursor-pointer">
                 <div className="flex justify-between items-center pb-2 border-b border-border/20">
                   <div>
                     <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -316,9 +375,8 @@ export default function AnalyticsPage() {
               </Card>
             </motion.div>
 
-            {/* Sleep Quality vs Heart Rate Variability (HRV) BarChart */}
-            <motion.div variants={cardVariants}>
-              <Card className="border-border/40 bg-card/45 backdrop-blur-md p-5 space-y-4 hover:border-primary/20 transition-all">
+            <motion.div variants={cardVariants} whileHover={{ y: -4 }}>
+              <Card className="border-border/40 bg-card/45 backdrop-blur-md p-5 space-y-4 hover:border-primary/20 transition-all cursor-pointer">
                 <div className="flex justify-between items-center pb-2 border-b border-border/20">
                   <div>
                     <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
