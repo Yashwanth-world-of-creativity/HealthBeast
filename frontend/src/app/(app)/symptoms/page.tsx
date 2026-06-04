@@ -103,6 +103,36 @@ const dietDatabase: Record<string, DietRecommendation> = {
     ],
     avoid: ["Dark Chocolate", "Spicy food close to sleep", "Caffeine after 2 PM", "Heavy meals"],
   },
+  Migraine: {
+    condition: "Migraine & Severe Headache",
+    bestFoods: ["Ginger", "Magnesium Water", "Spinach", "Quinoa", "Sesame Seeds"],
+    recommendations: [
+      "Maintain stable hydration profiles to prevent cerebral vascular tension.",
+      "Incorporate riboflavin-rich grains and magnesium-dense seeds to soothe nerves.",
+      "Rest in a darkened room while sipping lukewarm ginger infusions to reduce nausea.",
+    ],
+    avoid: ["Chocolate", "Aged Cheeses", "Red Wine", "Processed Meats with Nitrates"],
+  },
+  "Brain Fog": {
+    condition: "Brain Fog & Cognitive Fatigue",
+    bestFoods: ["Blueberries", "Walnuts", "Wild Salmon", "Egg Yolks", "Green Tea"],
+    recommendations: [
+      "Support neural transmission with omega-3 fatty acids from walnuts and wild fish.",
+      "Consume choline-rich egg yolks to optimize acetylcholine synthesis.",
+      "Limit simple sugars to prevent reactive hypoglycemia and energy crashes.",
+    ],
+    avoid: ["Refined Wheat", "Sugary Pastries", "Processed Dairy", "Artificial Additives"],
+  },
+  "Muscle Cramps": {
+    condition: "Muscle Cramps & Spasms",
+    bestFoods: ["Bananas", "Coconut Water", "Avocados", "Pumpkin Seeds", "Sweet Potatoes"],
+    recommendations: [
+      "Replenish intracellular potassium with bananas and avocados.",
+      "Consume magnesium-rich seeds to regulate neural muscle signals.",
+      "Restore electrolyte osmotic balance with organic coconut water.",
+    ],
+    avoid: ["Excessive Caffeine", "Alcohol", "Salty chips", "Refined table salt"],
+  },
 };
 
 export default function SymptomsPage() {
@@ -118,7 +148,7 @@ export default function SymptomsPage() {
   );
 
   // Common quick-select symptoms list
-  const commonSymptoms = ["Fatigue", "Acidity", "Muscle Soreness", "Mild Headache", "Dehydration", "Insomnia"];
+  const commonSymptoms = ["Fatigue", "Acidity", "Muscle Soreness", "Mild Headache", "Dehydration", "Insomnia", "Migraine", "Brain Fog", "Muscle Cramps"];
 
   // Log new symptom click handler
   const handleAddLog = (e: React.FormEvent) => {

@@ -9,6 +9,7 @@ import Logo from "@/components/shared/Logo";
 import BrandTitle from "@/components/shared/BrandTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -19,15 +20,30 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  React.useEffect(() => {
+    setLoading(false);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password || !confirmPassword) {
       setError("Please fill in all fields");
+      toast.error("Please fill in all fields");
       return;
     }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.com$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      const msg = "Please enter a valid email ending with .com (e.g. name@gmail.com)";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -39,7 +55,7 @@ export default function RegisterPage() {
       const registerRes = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email: normalizedEmail, password }),
       });
 
       const registerData = await registerRes.json();
@@ -51,7 +67,7 @@ export default function RegisterPage() {
       const loginRes = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: normalizedEmail, password }),
       });
 
       await loginRes.json();
@@ -59,10 +75,13 @@ export default function RegisterPage() {
         throw new Error("Account registered, but auto-login failed. Please sign in manually.");
       }
 
+      toast.success("Account created successfully!");
       // 3. Redirect to Onboarding
       router.push("/onboarding");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create account");
+      const message = err instanceof Error ? err.message : "Failed to create account";
+      setError(message);
+      toast.error(message);
       setLoading(false);
     }
   };
@@ -130,8 +149,8 @@ export default function RegisterPage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Yashwanth M"
-                className="pl-10 h-11 bg-muted/40 border-border/40 placeholder:text-muted-foreground/60 rounded-xl text-xs focus-visible:ring-primary/45 focus-visible:ring-1"
+                placeholder="Your Name"
+                className="pl-10 h-11 bg-muted/20 border-border/30 placeholder:text-muted-foreground/50 rounded-xl text-xs transition-all duration-300 focus:border-primary/60 focus:ring-2 focus:ring-primary/10"
                 required
               />
             </div>
@@ -147,8 +166,8 @@ export default function RegisterPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="yashwanth@healthbeast.ai"
-                className="pl-10 h-11 bg-muted/40 border-border/40 placeholder:text-muted-foreground/60 rounded-xl text-xs focus-visible:ring-primary/45 focus-visible:ring-1"
+                placeholder="your.email@example.com"
+                className="pl-10 h-11 bg-muted/20 border-border/30 placeholder:text-muted-foreground/50 rounded-xl text-xs transition-all duration-300 focus:border-primary/60 focus:ring-2 focus:ring-primary/10"
                 required
               />
             </div>
@@ -165,7 +184,7 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="pl-10 h-11 bg-muted/40 border-border/40 placeholder:text-muted-foreground/60 rounded-xl text-xs focus-visible:ring-primary/45 focus-visible:ring-1"
+                className="pl-10 h-11 bg-muted/20 border-border/30 placeholder:text-muted-foreground/50 rounded-xl text-xs transition-all duration-300 focus:border-primary/60 focus:ring-2 focus:ring-primary/10"
                 required
               />
             </div>
@@ -182,7 +201,7 @@ export default function RegisterPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                className="pl-10 h-11 bg-muted/40 border-border/40 placeholder:text-muted-foreground/60 rounded-xl text-xs focus-visible:ring-primary/45 focus-visible:ring-1"
+                className="pl-10 h-11 bg-muted/20 border-border/30 placeholder:text-muted-foreground/50 rounded-xl text-xs transition-all duration-300 focus:border-primary/60 focus:ring-2 focus:ring-primary/10"
                 required
               />
             </div>
@@ -191,7 +210,7 @@ export default function RegisterPage() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-11 rounded-xl shadow-lg shadow-primary/20 text-xs font-semibold flex items-center justify-center gap-1.5 mt-6 bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="w-full h-11 rounded-xl shadow-lg text-xs font-bold flex items-center justify-center gap-1.5 mt-6 bg-gradient-to-r from-emerald-500 via-primary to-violet-600 hover:opacity-95 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99] text-white border-0 cursor-pointer"
           >
             {loading ? "Creating Account..." : "Create Account"} <ArrowRight className="size-4" />
           </Button>

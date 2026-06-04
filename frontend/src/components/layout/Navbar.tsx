@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { navigation } from "@/constants/navigation";
 import { useUIStore } from "@/store/ui-store";
+import { useHealthStore } from "@/store/health-store";
 import ThemeToggle from "@/components/layout/ThemeToggle";
 import Logo from "@/components/shared/Logo";
 import BrandTitle from "@/components/shared/BrandTitle";
@@ -62,12 +63,15 @@ export default function Navbar() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
+  const user = useHealthStore((state) => state.user);
+  const updateUserProfile = useHealthStore((state) => state.updateUserProfile);
+  const clearStore = useHealthStore((state) => state.clearStore);
 
   // Profile Hub States
-  const [age, setAge] = useState("24");
-  const [height, setHeight] = useState("178");
-  const [weight, setWeight] = useState("72");
-  const [bloodType, setBloodType] = useState("O+");
+  const [age, setAge] = useState("");
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
+  const [bloodType, setBloodType] = useState("");
   const [healthGoals, setHealthGoals] = useState([
     "Track daily Vitamin D intake",
     "Maintain hydration above 2.5L",
@@ -75,7 +79,17 @@ export default function Navbar() {
   ]);
   const [newGoal, setNewGoal] = useState("");
 
-
+  const userName = user?.name || "User";
+  const userEmail = user?.email || "";
+  const userInitials = React.useMemo(() => {
+    if (!user?.name) return "HB";
+    return user.name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }, [user?.name]);
 
   // Get active route title
   const activeRoute = navigation.find((item) => item.href === pathname);
@@ -88,43 +102,28 @@ export default function Navbar() {
     { id: 3, text: "Medication: Vitamin D3 taken successfully", time: "4h ago", read: true },
   ];
 
-  // Fetch actual biometrics from DB when Dialog opens
+  // Sync actual biometrics from store/DB when user loads or Dialog opens
   React.useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await fetch("/api/auth/profile");
-        const data = await res.json();
-        if (data.user) {
-          if (data.user.age) setAge(String(data.user.age));
-          if (data.user.height) setHeight(String(data.user.height));
-          if (data.user.weight) setWeight(String(data.user.weight));
-          if (data.user.bloodGroup) setBloodType(data.user.bloodGroup);
-          if (data.user.allergies) {
-            setHealthGoals((prev) => [
-              ...prev.filter((g) => !g.startsWith("Allergies:")),
-              `Allergies: ${data.user.allergies}`,
-            ]);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load vitals", err);
+    if (user) {
+      setAge(user.age !== null && user.age !== undefined ? String(user.age) : "");
+      setHeight(user.height !== null && user.height !== undefined ? String(user.height) : "");
+      setWeight(user.weight !== null && user.weight !== undefined ? String(user.weight) : "");
+      setBloodType(user.bloodGroup || "");
+      if (user.allergies) {
+        setHealthGoals((prev) => {
+          const baseGoals = prev.filter((g) => !g.startsWith("Allergies:"));
+          return [...baseGoals, `Allergies: ${user.allergies}`];
+        });
       }
-    };
-
-    if (profileOpen) {
-      fetchProfile();
     }
-  }, [profileOpen]);
+  }, [user, profileOpen]);
 
-  // Persist vital modifications directly into MongoDB
+  // Persist vital modifications directly into MongoDB and store
   const handleSaveVitals = async (field: string, value: string) => {
     try {
-      await fetch("/api/auth/profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          [field]: field === "bloodGroup" ? value : Number(value),
-        }),
+      const parsedValue = field === "bloodGroup" ? value : value === "" ? null : Number(value);
+      await updateUserProfile({
+        [field]: parsedValue,
       });
     } catch (err) {
       console.error("Failed to save vital", err);
@@ -139,6 +138,8 @@ export default function Navbar() {
         method: "POST",
       });
       if (res.ok) {
+        // Clear local storage / Zustand state
+        clearStore();
         // Forces cookies invalidation and pushes to Landing Page
         window.location.href = "/";
       }
@@ -277,9 +278,9 @@ export default function Navbar() {
           <DropdownMenuTrigger asChild>
             <button className="outline-none focus:ring-2 focus:ring-primary/30 rounded-full transition-all">
               <Avatar className="cursor-pointer hover:opacity-90 transition-opacity">
-                <AvatarImage src="" alt="Yashwanth" />
+                <AvatarImage src="" alt={userName} />
                 <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
-                  YM
+                  {userInitials}
                 </AvatarFallback>
                 <AvatarBadge className="bg-emerald-500 ring-background" />
               </Avatar>
@@ -287,8 +288,8 @@ export default function Navbar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl bg-popover/90 backdrop-blur-xl">
             <DropdownMenuLabel className="py-2 px-3 flex flex-col">
-              <span className="font-semibold text-sm text-foreground">Yashwanth M</span>
-              <span className="text-xs text-muted-foreground truncate">yashwanth@healthbeast.ai</span>
+              <span className="font-semibold text-sm text-foreground">{userName}</span>
+              <span className="text-xs text-muted-foreground truncate">{userEmail}</span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
@@ -331,10 +332,10 @@ export default function Navbar() {
           <div className="p-4 rounded-xl bg-gradient-to-tr from-primary/10 via-primary/5 to-violet-500/10 border border-primary/20 flex items-center gap-4">
             <Avatar size="lg">
               <AvatarImage src="" />
-              <AvatarFallback className="bg-primary/20 text-primary font-bold text-sm">YM</AvatarFallback>
+              <AvatarFallback className="bg-primary/20 text-primary font-bold text-sm">{userInitials}</AvatarFallback>
             </Avatar>
             <div>
-              <h4 className="font-semibold text-sm text-foreground">Yashwanth M</h4>
+              <h4 className="font-semibold text-sm text-foreground">{userName}</h4>
               <div className="flex items-center gap-1 mt-1 text-[10px] text-primary font-bold uppercase tracking-wider">
                 <Award className="size-3.5" /> Elite Beast Rank
               </div>

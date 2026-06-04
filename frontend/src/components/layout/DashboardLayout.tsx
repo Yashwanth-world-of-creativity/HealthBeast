@@ -1,15 +1,28 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
+import { useHealthStore } from "@/store/health-store";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isAIAssistant = pathname === "/ai-assistant";
+  
+  const fetchHealthData = useHealthStore((state) => state.fetchHealthData);
+
+  useEffect(() => {
+    fetchHealthData();
+  }, []);
+
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
       {/* Collapsible desktop sidebar */}
@@ -48,7 +61,10 @@ export default function DashboardLayout({
         <Navbar />
 
         {/* Dynamic page content scroll area */}
-        <main className="flex-1 flex flex-col min-h-0 min-w-0 overflow-y-auto z-10 relative scrollbar-thin scrollbar-thumb-muted">
+        <main className={cn(
+          "flex-1 flex flex-col min-h-0 min-w-0 z-10 relative scrollbar-thin scrollbar-thumb-muted",
+          isAIAssistant ? "overflow-hidden" : "overflow-y-auto"
+        )}>
           <div className="w-full max-w-7xl mx-auto flex-1 flex flex-col min-h-0">
             {children}
           </div>

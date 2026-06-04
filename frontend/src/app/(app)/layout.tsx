@@ -19,21 +19,29 @@ export default async function AppLayout({
     redirect("/login");
   }
 
+  let authenticated = false;
+  let userOnboarded = false;
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
     
     await dbConnect();
     const user = await User.findById(decoded.userId);
 
-    if (!user) {
-      redirect("/login");
+    if (user) {
+      authenticated = true;
+      userOnboarded = user.onboarded;
     }
+  } catch (error) {
+    console.error("AppLayout Authentication Verification Error:", error);
+  }
 
-    if (!user.onboarded) {
-      redirect("/onboarding");
-    }
-  } catch {
-    redirect("/login");
+  if (!authenticated) {
+    redirect("/login?clear=1");
+  }
+
+  if (!userOnboarded) {
+    redirect("/onboarding");
   }
 
   return (

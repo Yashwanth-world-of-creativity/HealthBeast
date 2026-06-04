@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useHealthStore } from "@/store/health-store";
 
 interface UserProfile {
   name: string;
@@ -33,6 +34,10 @@ interface UserProfile {
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const user = useHealthStore((state) => state.user);
+  const updateUserProfile = useHealthStore((state) => state.updateUserProfile);
+  const clearStore = useHealthStore((state) => state.clearStore);
+
   const [profile, setProfile] = useState<UserProfile>({
     name: "",
     email: "",
@@ -55,56 +60,31 @@ export default function SettingsPage() {
     () => false
   );
 
-  // 1. Fetch profile details on mount
+  // Sync profile details when user state in store updates
   useEffect(() => {
-    async function loadProfile() {
-      try {
-        const response = await fetch("/api/auth/profile");
-        if (!response.ok) {
-          throw new Error("Failed to retrieve profile details.");
-        }
-        const data = await response.json();
-        if (data.user) {
-          setProfile({
-            name: data.user.name || "",
-            email: data.user.email || "",
-            age: data.user.age || null,
-            height: data.user.height || null,
-            weight: data.user.weight || null,
-            bloodGroup: data.user.bloodGroup || "",
-            activityLevel: data.user.activityLevel || "Moderate",
-            allergies: data.user.allergies || "",
-            existingConditions: data.user.existingConditions || "",
-          });
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to load user profile");
-      } finally {
-        setLoading(false);
-      }
+    if (user) {
+      setProfile({
+        name: user.name || "",
+        email: user.email || "",
+        age: user.age || null,
+        height: user.height || null,
+        weight: user.weight || null,
+        bloodGroup: user.bloodGroup || "",
+        activityLevel: user.activityLevel || "Moderate",
+        allergies: user.allergies || "",
+        existingConditions: user.existingConditions || "",
+      });
+      setLoading(false);
     }
+  }, [user]);
 
-    loadProfile();
-  }, []);
-
-  // 2. Save/Update Profile handler
+  // 2. Save/Update Profile handler via Zustand store
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
     try {
-      const response = await fetch("/api/auth/profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profile),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Failed to update profile details.");
-      }
-
+      await updateUserProfile(profile);
       toast.success("Health Profile updated successfully in our database!");
     } catch (err) {
       console.error(err);
@@ -125,6 +105,9 @@ export default function SettingsPage() {
       if (!response.ok) {
         throw new Error("Signout API call failed.");
       }
+
+      // Clear client-side store
+      clearStore();
 
       toast.success("Successfully logged out. Redirecting...");
       setTimeout(() => {

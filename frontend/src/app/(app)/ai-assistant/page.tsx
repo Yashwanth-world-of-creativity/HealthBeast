@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useHealthStore } from "@/store/health-store";
+
 
 interface Message {
   id: string;
@@ -51,7 +51,6 @@ const generateId = (prefix: string) => {
 };
 
 export default function AIAssistantPage() {
-  const { symptoms, medications } = useHealthStore();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -69,6 +68,7 @@ export default function AIAssistantPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -95,7 +95,12 @@ export default function AIAssistantPage() {
 
   // Auto-scroll chat to bottom
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
   };
 
   useEffect(() => {
@@ -177,7 +182,7 @@ export default function AIAssistantPage() {
     };
 
     setMessages((prev) => [...prev, newMessage]);
-    simulateAIResponse("Voice input analysis");
+    callAIAssistantEndpoint("Analyze this voice message input regarding my symptoms and medication schedule.");
   };
 
   // Send textual/image prompt
@@ -201,46 +206,58 @@ export default function AIAssistantPage() {
     removeAttachedImage();
 
     // Trigger AI loading and response
-    simulateAIResponse(currentInput, currentImage || undefined);
+    callAIAssistantEndpoint(currentInput, currentImage || undefined);
   };
 
-  // Context-aware simulated responses
-  const simulateAIResponse = (userPrompt: string, imageSrc?: string) => {
+  // Fetch actual responses from our FastAPI-backed Gemini agent
+  const callAIAssistantEndpoint = async (userPrompt: string, imageSrc?: string) => {
     setLoading(true);
-    
-    // Custom delay to simulate AI parsing
-    setTimeout(() => {
-      let replyText = "";
-      const lowerInput = userPrompt.toLowerCase();
+    try {
+      const res = await fetch("/api/ai-assistant", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: userPrompt,
+          image: imageSrc || null,
+        }),
+      });
 
-      // Analyze active state database context
-      const activeSymptomNames = symptoms.map(s => s.name);
-      const activeMedNames = medications.map(m => m.name);
-
-      if (imageSrc) {
-        replyText = "I've successfully performed clinical OCR scanning on your uploaded biometric file. The labels suggest stable baselines, but I notice slightly elevated liver filtration indicators, which is expected when metabolizing active supplements. Let me compare this with your symptom history.";
-      } else if (lowerInput.includes("sleep") || lowerInput.includes("fatigue")) {
-        replyText = `Based on your logged ${activeSymptomNames.includes("Fatigue") ? "Fatigue symptoms" : "vitals"}, I suggest maintaining an early hydration buffer. Dehydration can reduce heart rate variability (HRV) by up to 12%, contributing directly to physical exhaustion. Try taking your ${activeMedNames.includes("Vitamin D3 Co-factors") ? "Vitamin D3 Co-factors" : "supplements"} Post-Breakfast for optimal cellular transport.`;
-      } else if (lowerInput.includes("sore") || lowerInput.includes("muscle") || lowerInput.includes("workout")) {
-        replyText = `For muscle soreness recovery, I recommend incorporating Zone 1 steady-state walking (30 mins) to assist lymphatic clearing. Focus on calcium/magnesium complex foods like almonds and spinach. Tapping into your active supplement checklist for Magnesium Glycinate will significantly reduce soreness triggers.`;
-      } else if (lowerInput.includes("voice") || lowerInput.includes("voice message") || lowerInput.includes("voice input")) {
-        replyText = "I have parsed your recorded voice note. The acoustics and speech velocity are optimal, representing high neurological readiness (HRV around 78 ms). You logged ready for active cognitive or physical workflow calibration today.";
-      } else {
-        replyText = `I have logged your request. Considering your ${symptoms.length} active logged symptoms (${symptoms.map(s => s.name).join(", ") || "General health"}), and your supplement checklist, maintain water intake above 2.5 Liters. This optimizes metabolic clearance and supports longevity indicators.`;
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || errorData.error || "Failed to get response from AI assistant");
       }
 
+      const data = await res.json();
+      
       const aiMessage: Message = {
         id: generateId("msg"),
         sender: "ai",
-        text: replyText,
+        text: data.response,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
 
       setMessages((prev) => [...prev, aiMessage]);
-      setLoading(false);
       toast.success("AI companion updated vitals analysis!");
-    }, 1500);
+    } catch (err) {
+      console.error("AI assistant error:", err);
+      const errMsg = err instanceof Error ? err.message : "Failed to connect to AI assistant";
+      toast.error(errMsg);
+      
+      // Add error response from AI to chat for better UX
+      const aiMessage: Message = {
+        id: generateId("msg"),
+        sender: "ai",
+        text: `Error: ${errMsg}. Please check if the FastAPI backend server is running.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   const togglePlayAudio = (msgId: string) => {
     setMessages((prev) =>
@@ -333,7 +350,10 @@ export default function AIAssistantPage() {
         </div>
 
         {/* Messages Logger Body */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 relative z-10 scrollbar-thin scrollbar-thumb-muted">
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto px-4 py-6 relative z-10 scrollbar-thin scrollbar-thumb-muted"
+        >
           <div className="max-w-3xl mx-auto w-full space-y-6">
             {mounted && messages.length === 1 && (
               <div className="flex flex-col items-center justify-center text-center py-12 space-y-4">
@@ -409,17 +429,24 @@ export default function AIAssistantPage() {
                               <div className="flex-1 flex gap-0.5 items-center justify-center h-4 px-1">
                                 {/* Glowing voice waves */}
                                 {[...Array(12)].map((_, i) => (
-                                  <div
+                                  <motion.div
                                     key={i}
                                     className={cn(
-                                      "w-[2px] bg-primary/50 rounded-full transition-all duration-300",
-                                      message.audio?.isPlaying ? "animate-pulse bg-emerald-500" : ""
+                                      "w-[2px] rounded-full shrink-0",
+                                      message.audio?.isPlaying 
+                                        ? "bg-gradient-to-t from-emerald-500 to-sky-400" 
+                                        : "bg-primary/50"
                                     )}
-                                    style={{
-                                      height: message.audio?.isPlaying
-                                        ? `${30 + (i % 4) * 20}%`
-                                        : "30%",
-                                      animationDelay: `${i * 0.08}s`,
+                                    animate={message.audio?.isPlaying ? {
+                                      height: ["30%", "90%", "30%"],
+                                    } : {
+                                      height: "30%",
+                                    }}
+                                    transition={{
+                                      duration: 0.6 + ((i * 7) % 5) * 0.06,
+                                      repeat: Infinity,
+                                      ease: "easeInOut",
+                                      delay: i * 0.05,
                                     }}
                                   />
                                 ))}
@@ -514,13 +541,17 @@ export default function AIAssistantPage() {
                     <div className="flex-1 flex gap-0.5 items-center justify-center h-4 px-2">
                       {/* Siri Bouncing Voice Waveforms */}
                       {[...Array(14)].map((_, i) => (
-                        <div
+                        <motion.div
                           key={i}
-                          className="w-[2px] bg-red-500/80 rounded-full animate-bounce shrink-0"
-                          style={{
-                            height: `${30 + (i % 4) * 20}%`,
-                            animationDelay: `${i * 0.05}s`,
-                            animationDuration: "0.6s",
+                          className="w-[2px] bg-gradient-to-t from-red-500 via-amber-500 to-red-500 rounded-full shrink-0"
+                          animate={{
+                            height: ["20%", "85%", "20%"],
+                          }}
+                          transition={{
+                            duration: 0.5 + ((i * 3) % 10) * 0.04,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: i * 0.04,
                           }}
                         />
                       ))}

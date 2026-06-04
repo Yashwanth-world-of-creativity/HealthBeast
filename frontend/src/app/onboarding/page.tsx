@@ -15,6 +15,7 @@ import Logo from "@/components/shared/Logo";
 import BrandTitle from "@/components/shared/BrandTitle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const months = [
   "January", "February", "March", "April", "May", "June",
@@ -97,10 +98,12 @@ export default function OnboardingPage() {
         throw new Error("Failed to save onboarding details");
       }
 
+      toast.success("Profile setup complete!");
       router.push("/dashboard");
     } catch (error) {
       console.error(error);
-      alert("Error saving profiles. Please try again.");
+      const message = error instanceof Error ? error.message : "Error saving profile. Please try again.";
+      toast.error(message);
       setLoading(false);
     }
   };

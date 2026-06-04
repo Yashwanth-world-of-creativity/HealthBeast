@@ -122,7 +122,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground relative overflow-hidden select-none">
+    <div className="h-screen w-screen overflow-y-auto bg-background text-foreground relative select-none">
       {/* Background Mesh Gradients */}
       <div className="absolute top-[-10%] left-[-20%] size-[800px] rounded-full bg-emerald-500/5 dark:bg-emerald-500/10 blur-[150px] pointer-events-none z-0" />
       <div className="absolute top-[20%] right-[-10%] size-[800px] rounded-full bg-primary/5 dark:bg-primary/10 blur-[150px] pointer-events-none z-0" />

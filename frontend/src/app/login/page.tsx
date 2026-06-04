@@ -4,11 +4,12 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowRight, Mail, Lock, AlertCircle } from "lucide-react";
+import { ArrowRight, Mail, Lock, AlertCircle, Sparkles } from "lucide-react";
 import Logo from "@/components/shared/Logo";
 import BrandTitle from "@/components/shared/BrandTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,11 +17,52 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+
+  React.useEffect(() => {
+    setLoading(false);
+    setDemoLoading(false);
+  }, []);
+
+  const handleDemoLogin = async () => {
+    setDemoLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "demo@healthbeast.ai", password: "Password123!" }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Authentication failed");
+      }
+
+      toast.success("Demo session initialized!");
+      router.push("/dashboard");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to log in";
+      setError(message);
+      toast.error(message);
+      setDemoLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setError("Please fill in all fields");
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.com$/;
+    if (!emailRegex.test(normalizedEmail) && normalizedEmail !== "demo@healthbeast.ai") {
+      const msg = "Please enter a valid email ending with .com (e.g. name@gmail.com)";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -31,13 +73,15 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: normalizedEmail, password }),
       });
 
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Authentication failed");
       }
+
+      toast.success("Successfully logged in!");
 
       // Check onboarding redirect
       if (data.user?.onboarded) {
@@ -48,6 +92,7 @@ export default function LoginPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to log in";
       setError(message);
+      toast.error(message);
       setLoading(false);
     }
   };
@@ -115,8 +160,8 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="yashwanth@healthbeast.ai"
-                className="pl-10 h-11 bg-muted/40 border-border/40 placeholder:text-muted-foreground/60 rounded-xl text-xs focus-visible:ring-primary/45 focus-visible:ring-1"
+                placeholder="your.email@example.com"
+                className="pl-10 h-11 bg-muted/20 border-border/30 placeholder:text-muted-foreground/50 rounded-xl text-xs transition-all duration-300 focus:border-primary/60 focus:ring-2 focus:ring-primary/10"
                 required
               />
             </div>
@@ -133,7 +178,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="pl-10 h-11 bg-muted/40 border-border/40 placeholder:text-muted-foreground/60 rounded-xl text-xs focus-visible:ring-primary/45 focus-visible:ring-1"
+                className="pl-10 h-11 bg-muted/20 border-border/30 placeholder:text-muted-foreground/50 rounded-xl text-xs transition-all duration-300 focus:border-primary/60 focus:ring-2 focus:ring-primary/10"
                 required
               />
             </div>
@@ -141,16 +186,39 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            disabled={loading}
-            className="w-full h-11 rounded-xl shadow-lg shadow-primary/20 text-xs font-semibold flex items-center justify-center gap-1.5 mt-6 bg-primary hover:bg-primary/90 text-primary-foreground"
+            disabled={loading || demoLoading}
+            className="w-full h-11 rounded-xl shadow-lg text-xs font-bold flex items-center justify-center gap-1.5 mt-6 bg-gradient-to-r from-emerald-500 via-primary to-violet-600 hover:opacity-95 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99] text-white border-0 cursor-pointer"
           >
             {loading ? "Authenticating..." : "Sign In"} <ArrowRight className="size-4" />
           </Button>
         </form>
 
+        <div className="relative my-5 flex items-center justify-center">
+          <span className="absolute inset-x-0 h-[1px] bg-border/20" />
+          <span className="relative bg-black/60 px-3.5 text-[9px] text-muted-foreground/75 uppercase font-black tracking-widest backdrop-blur-md">
+            Or
+          </span>
+        </div>
+
+        <Button
+          type="button"
+          disabled={loading || demoLoading}
+          onClick={handleDemoLogin}
+          className="w-full h-11 rounded-xl border border-primary/20 hover:border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary text-xs font-bold flex items-center justify-center gap-2 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+        >
+          {demoLoading ? (
+            "Launching Demo Ecosystem..."
+          ) : (
+            <>
+              <Sparkles className="size-4 animate-pulse text-emerald-400" />
+              Use Demo Account (Instant Login)
+            </>
+          )}
+        </Button>
+
         <div className="mt-8 text-center border-t border-border/20 pt-6 text-xs text-muted-foreground">
           {"Don't have an account? "}
-          <Link href="/register" className="text-primary hover:underline font-bold">
+          <Link href="/register" className="text-primary hover:underline font-bold transition-all">
             Create Account
           </Link>
         </div>

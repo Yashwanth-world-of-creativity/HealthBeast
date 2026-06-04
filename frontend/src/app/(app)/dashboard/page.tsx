@@ -56,6 +56,8 @@ export default function DashboardPage() {
     waterIntake,
     logWater,
     resetWater,
+    reports,
+    user,
   } = useHealthStore();
 
   const [selectedSeverity, setSelectedSeverity] = useState<"Low" | "Medium" | "High">("Low");
@@ -136,7 +138,7 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-extrabold font-heading tracking-tight">
-            Welcome back, Yashwanth
+            Welcome back, {user?.name ? user.name.split(" ")[0] : "User"}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             Vitals are optimal. You are in your peak recovery phase today.
@@ -471,36 +473,61 @@ export default function DashboardPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Mock Files */}
-                <div className="p-3.5 rounded-2xl border border-border/20 bg-muted/10 hover:bg-muted/30 transition-colors flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold font-mono">
-                      PDF
+                {reports && reports.length > 0 ? (
+                  reports.slice(0, 2).map((rep) => {
+                    const isPresc = rep.category === "Prescription";
+                    return (
+                      <div key={rep.id} className="p-3.5 rounded-2xl border border-border/20 bg-muted/10 hover:bg-muted/30 transition-colors flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "size-8 rounded-lg flex items-center justify-center text-xs font-bold font-mono",
+                            isPresc ? "bg-purple-500/15 text-purple-500" : "bg-emerald-500/15 text-emerald-500"
+                          )}>
+                            {isPresc ? "Rx" : "PDF"}
+                          </div>
+                          <div>
+                            <span className="text-xs font-semibold block text-foreground truncate max-w-[120px]">{rep.name}</span>
+                            <span className="text-[9px] text-muted-foreground">{rep.size} • Scanned {rep.date}</span>
+                          </div>
+                        </div>
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                          Analyzed
+                        </span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <>
+                    <div className="p-3.5 rounded-2xl border border-border/20 bg-muted/10 hover:bg-muted/30 transition-colors flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold font-mono">
+                          PDF
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold block text-foreground">BloodWork_May.pdf</span>
+                          <span className="text-[9px] text-muted-foreground">3.2 MB • Scanned May 15</span>
+                        </div>
+                      </div>
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                        Analyzed
+                      </span>
                     </div>
-                    <div>
-                      <span className="text-xs font-semibold block text-foreground">BloodWork_May.pdf</span>
-                      <span className="text-[9px] text-muted-foreground">3.2 MB • Scanned May 15</span>
+                    <div className="p-3.5 rounded-2xl border border-border/20 bg-muted/10 hover:bg-muted/30 transition-colors flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-bold font-mono">
+                          PNG
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold block text-foreground">ThyroidScan.png</span>
+                          <span className="text-[9px] text-muted-foreground">1.8 MB • Scanned May 24</span>
+                        </div>
+                      </div>
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                        Analyzed
+                      </span>
                     </div>
-                  </div>
-                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500">
-                    Analyzed
-                  </span>
-                </div>
-
-                <div className="p-3.5 rounded-2xl border border-border/20 bg-muted/10 hover:bg-muted/30 transition-colors flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-bold font-mono">
-                      PNG
-                    </div>
-                    <div>
-                      <span className="text-xs font-semibold block text-foreground">ThyroidScan.png</span>
-                      <span className="text-[9px] text-muted-foreground">1.8 MB • Scanned May 24</span>
-                    </div>
-                  </div>
-                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500">
-                    Analyzed
-                  </span>
-                </div>
+                  </>
+                )}
               </div>
             </div>
 
